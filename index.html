@@ -6,13 +6,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aurora Forecast Map</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    
+    <style>
+		@font-face {
+		font-family:"effra";
+		src:url("https://use.typekit.net/af/bc093c/00000000000000007735fd41/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3") format("woff2"),url("https://use.typekit.net/af/bc093c/00000000000000007735fd41/30/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3") format("woff"),url("https://use.typekit.net/af/bc093c/00000000000000007735fd41/30/a?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3") format("opentype");
+		font-display:auto;font-style:normal;font-weight:400;font-stretch:normal;
+		}
+
+		@font-face {
+		font-family:"effra";
+		src:url("https://use.typekit.net/af/c0864f/00000000000000007735fd3d/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff2"),url("https://use.typekit.net/af/c0864f/00000000000000007735fd3d/30/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff"),url("https://use.typekit.net/af/c0864f/00000000000000007735fd3d/30/a?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("opentype");
+		font-display:auto;font-style:normal;font-weight:700;font-stretch:normal;
+		}
+
+		@font-face {
+		font-family: "effra";
+		src: url("https://use.typekit.net/af/[font-id]/00000000000000007735fd[xx]/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i4&v=3") format("woff2"),
+			url("https://use.typekit.net/af/[font-id]/00000000000000007735fd[xx]/30/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i4&v=3") format("woff"),
+			url("https://use.typekit.net/af/[font-id]/00000000000000007735fd[xx]/30/a?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i4&v=3") format("opentype");
+		font-display: auto;
+		font-style: italic;
+		font-weight: 400;
+		font-stretch: normal;
+		}
+
+		@font-face {
+		font-family: 'Effra-Regular';
+		src: local('effra');
+		font-weight: 400;
+		font-style: normal;
+		}
+    
+		@font-face {
+		font-family: 'Effra-Bold';
+		src: local('effra');
+		font-weight: 700;
+		font-style: normal;
+		}
+
+        @font-face {
+		font-family: 'Effra';
+		src: local('effra');
+		font-weight: 400;
+		font-style: italic;
+		}
+
+		@font-face {
+		font-family: 'Effra-Italic';
+		src: local('effra');
+		font-weight: 400;
+		font-style: italic;
+	}
+
+	</style>
+
+    <style>
+    .source-sans-3-light {
+        font-family: "Source Sans 3", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 300;
+        font-style: normal;
+    }
+
+    .source-sans-3-regular {
+        font-family: "Source Sans 3", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 400;
+        font-style: normal;
+    }
+
+    .source-sans-3-bold {
+        font-family: "Source Sans 3", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 700;
+        font-style: normal;
+    }
+    </style>
+
     <style>
         body {
-            margin: 0;
             padding: 0;
-            /* background: #1a1a1a; */
-            color: white;
-            font-family: Arial, sans-serif;
+            color: #333;
+            font-family: 'Effra', sans-serif;
+            margin: 0;
+            padding: 20px;
         }
         
         #map {
@@ -45,6 +125,10 @@
             z-index: 1000;
             font-size: 12px;
             max-width: 300px;
+            position: absolute;
+            top: 700px;
+            left: 30px;
+            font-size: 1.125rem;
         }
         
         .legend-item {
@@ -67,7 +151,7 @@
             left: 10px; */
             /* background: whitesmoke; */
             color: #333;
-            font-size: 12px;
+            font-size: 1.125rem;
         }
         .info-container {
             display: flex;
@@ -78,9 +162,33 @@
 </head>
 
 <body>
+    <h1>Aurora Forecast Map</h1>
+    <div class="legend">
+        <div><strong>Likelihood of Aurora</strong></div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF0000;"></div>
+            <span>Extreme</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF8000;"></div>
+            <span>Very High</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FFFF00;"></div>
+            <span>High</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #80FF00;"></div>
+            <span>Moderate</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00FF00;"></div>
+            <span>Low</span>
+        </div>
+    </div>
     <div id="map"></div>
     
-    <div class="info-container">    
+    <!-- <div class="info-container">    
         <div class="legend">
             <div><strong>Likelihood of Aurora</strong></div>
             <div class="legend-item">
@@ -104,7 +212,7 @@
                 <span>Low</span>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <div class="footnote">
         <div class="info-panel">
