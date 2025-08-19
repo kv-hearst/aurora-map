@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolarMap.js Example</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- PolarMap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GeoSensorWebLab/polarmap.js@master/dist/polarmap.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        #mapContainer {
+            height: 600px;
+            width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .projection-info {
+            text-align: center;
+            color: #666;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PolarMap.js - Polar Projection Map</h1>
+        <div class="projection-info">Currently viewing: <span id="currentProjection">Arctic (EPSG:3995)</span></div>
+        
+        <div class="controls">
+            <button onclick="switchToArctic()">Arctic View (EPSG:3995)</button>
+            <button onclick="switchToAntarctic()">Antarctic View (EPSG:3031)</button>
+            <button onclick="addSampleMarkers()">Add Sample Markers</button>
+            <button onclick="clearMarkers()">Clear Markers</button>
+        </div>
+        
+        <div id="mapContainer"></div>
+        
+        <div class="info">
+            <h3>About PolarMap.js</h3>
+            <p>This example demonstrates PolarMap.js, which extends Leaflet to support polar projections. The map can display both Arctic (North Pole) and Antarctic (South Pole) views using proper polar stereographic projections.</p>
+            <p><strong>Features:</strong></p>
+            <ul>
+                <li>EPSG:3995 - Arctic Polar Stereographic projection</li>
+                <li>EPSG:3031 - Antarctic Polar Stereographic projection</li>
+                <li>Full Leaflet compatibility for markers, popups, and overlays</li>
+                <li>Proper coordinate transformation for polar regions</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Proj4 for coordinate transformations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+    
+    <!-- Proj4Leaflet for Leaflet integration -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.min.js"></script>
+    
+    <!-- PolarMap.js -->
+    <script src="https://cdn.jsdelivr.net/gh/GeoSensorWebLab/polarmap.js@master/dist/polarmap-src.js"></script>
+
+    <script>
+        let map;
+        let markers = [];
+        
+        function init() {
+            // Initialize map with Arctic projection (EPSG:3995)
+            map = new PolarMap('mapContainer', {
+                center: [90, 0], // North Pole
+                zoom: 2,
+                crs: 'EPSG:3995' // Arctic Polar Stereographic
+            });
+            
+            // Add OpenStreetMap tiles (will be transformed to polar projection)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            console.log('PolarMap initialized successfully!');
+        }
+        
+        function switchToArctic() {
+            // Reinitialize map with Arctic projection
+            if (map) {
+                map.remove();
+            }
+            
+            map = new PolarMap('mapContainer', {
+                center: [90, 0],
+                zoom: 2,
+                crs: 'EPSG:3995'
+            });
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            document.getElementById('currentProjection').textContent = 'Arctic (EPSG:3995)';
+            markers = []; // Clear markers array
+        }
+        
+        function switchToAntarctic() {
+            // Reinitialize map with Antarctic projection
+            if (map) {
+                map.remove();
+            }
+            
+            map = new PolarMap('mapContainer', {
+                center: [-90, 0],
+                zoom: 2,
+                crs: 'EPSG:3031'
+            });
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            document.getElementById('currentProjection').textContent = 'Antarctic (EPSG:3031)';
+            markers = []; // Clear markers array
+        }
+        
+        function addSampleMarkers() {
+            clearMarkers();
+            
+            const currentCRS = map.options.crs;
+            
+            if (currentCRS === 'EPSG:3995') {
+                // Arctic locations
+                const arcticLocations = [
+                    { lat: 85, lng: -100, name: 'Northern Canada', desc: 'High Arctic region' },
+                    { lat: 80, lng: 20, name: 'Svalbard, Norway', desc: 'Arctic archipelago' },
+                    { lat: 75, lng: -40, name: 'Greenland', desc: 'World\'s largest island' },
+                    { lat: 70, lng: 60, name: 'Northern Siberia', desc: 'Russian Arctic' },
+                    { lat: 82, lng: 180, name: 'North of Alaska', desc: 'Arctic Ocean' }
+                ];
+                
+                arcticLocations.forEach(location => {
+                    const marker = L.marker([location.lat, location.lng])
+                        .addTo(map)
+                        .bindPopup(`<b>${location.name}</b><br>${location.desc}<br>Coordinates: ${location.lat}°, ${location.lng}°`);
+                    markers.push(marker);
+                });
+            } else {
+                // Antarctic locations
+                const antarcticLocations = [
+                    { lat: -85, lng: 0, name: 'South Pole Region', desc: 'Near the South Pole' },
+                    { lat: -75, lng: -60, name: 'Antarctic Peninsula', desc: 'Western Antarctica' },
+                    { lat: -80, lng: 120, name: 'East Antarctica', desc: 'Polar plateau region' },
+                    { lat: -70, lng: 160, name: 'Ross Sea Region', desc: 'Antarctic coast' },
+                    { lat: -78, lng: -120, name: 'Marie Byrd Land', desc: 'Western Antarctica' }
+                ];
+                
+                antarcticLocations.forEach(location => {
+                    const marker = L.marker([location.lat, location.lng])
+                        .addTo(map)
+                        .bindPopup(`<b>${location.name}</b><br>${location.desc}<br>Coordinates: ${location.lat}°, ${location.lng}°`);
+                    markers.push(marker);
+                });
+            }
+        }
+        
+        function clearMarkers() {
+            markers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            markers = [];
+        }
+        
+        // Initialize the map when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Small delay to ensure all scripts are loaded
+            setTimeout(init, 100);
+        });
+    </script>
+</body>
+</html>

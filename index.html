@@ -10,39 +10,41 @@
         body {
             margin: 0;
             padding: 0;
-            background: #1a1a1a;
+            /* background: #1a1a1a; */
             color: white;
             font-family: Arial, sans-serif;
         }
         
         #map {
-            height: 100vh;
+            height: 800px;
             width: 100%;
         }
         
         .info-panel {
-            position: absolute;
-            bottom: 30px;
+            /* position: relative; */
+            max-width: 300px;
             left: 10px;
-            background: whitesmoke;
+            bottom: 30px;
+            /* background: whitesmoke; */
             color: #333;
-            opacity: 0.7;
+            /* opacity: 0.7;
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 5px; */
             z-index: 1000;
         }
         
         .legend {
-            position: absolute;
+            /* position: relative;
             bottom: 30px;
-            right: 10px;
-            background: whitesmoke;
+            right: 10px; */
+            /* background: whitesmoke; */
             color: #333;
-            opacity: 0.7;
-            padding: 10px;
-            border-radius: 5px;
+            /* opacity: 0.7; */
+            /* padding: 10px;
+            border-radius: 5px; */
             z-index: 1000;
             font-size: 12px;
+            max-width: 300px;
         }
         
         .legend-item {
@@ -57,40 +59,59 @@
             margin-right: 8px;
             border-radius: 2px;
         }
+
+        .footnote {
+            margin-top: 20px;
+            position: relative;
+            /* bottom: 10px;
+            left: 10px; */
+            /* background: whitesmoke; */
+            color: #333;
+            font-size: 12px;
+        }
+        .info-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
     </style>
 </head>
 
 <body>
     <div id="map"></div>
     
-    <div class="info-panel">
-        <div><strong>Aurora Forecast</strong></div>
-        <div id="forecastTime">Loading...</div>
-        <div id="dataStatus">Initializing...</div>
+    <div class="info-container">    
+        <div class="legend">
+            <div><strong>Likelihood of Aurora</strong></div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF0000;"></div>
+                <span>Extreme</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF8000;"></div>
+                <span>Very High</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFFF00;"></div>
+                <span>High</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #80FF00;"></div>
+                <span>Moderate</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00FF00;"></div>
+                <span>Low</span>
+            </div>
+        </div>
     </div>
-    
-    <div class="legend">
-        <div><strong>Likelihood of Aurora</strong></div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #FF0000;"></div>
-            <span>Extreme</span>
+
+    <div class="footnote">
+        <div class="info-panel">
+            <i><div id="forecastTime">Loading...</div></i>
+            <!-- <div id="dataStatus">Initializing...</div> -->
         </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #FF8000;"></div>
-            <span>Very High</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #FFFF00;"></div>
-            <span>High</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #80FF00;"></div>
-            <span>Moderate</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #00FF00;"></div>
-            <span>Low</span>
-        </div>
+        <p>Map: Katrina Ventura/Hearst TV •  Source: <a href="https://www.swpc.noaa.gov/products/aurora-viewline-tonight-and-tomorrow-night-experimental" target="_blank">NOAA SWPC Aurora Forecast</p>
     </div>
 
 
@@ -101,19 +122,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.min.js"></script>
 
 
+
+
     <script>
 
-        
         const map = L.map('map', {
             center: [40, 260], // Shifted west to center on North America
-            zoom: 4,
+            zoom: 3,
             minZoom: 4,
-            maxZoom: 6,
+            maxZoom: 8,
             maxBounds: [[0, 180], [90, 360]],
             maxBoundsViscosity: 1.0
             
         });
-
 
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -121,12 +142,6 @@
             maxZoom: 20,
             subdomains: 'abcd'
         }).addTo(map);
-
-        // L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        //         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        //         subdomains: 'abcd',
-        //         maxZoom: 20
-        //     }).addTo(this.map);
 
         let auroraLayer = L.layerGroup().addTo(map);
         let heatmapLayer = null;
@@ -148,9 +163,7 @@
                     const lat = coords[1];
                     
                     // Only show points in Arctic region (latitude > 60°N) with aurora activity
-                    if (intensity > 0 && lat > 60) {
-                        // Convert intensity to heatmap format [lat, lng, intensity]
-                        // Normalize intensity (0-20 range to 0-1 range for better heatmap display)
+                    if (intensity > 0 ) {
                         const normalizedIntensity = Math.min(intensity / 20, 1.0);
                         heatmapPoints.push([lat, coords[0], normalizedIntensity]);
                         
@@ -194,11 +207,11 @@
                 }
             }
             
-            document.getElementById('dataStatus').textContent = `Showing ${pointCount} Arctic aurora points`;
+            // document.getElementById('dataStatus').textContent = `Showing ${pointCount} Arctic aurora points`;
         }
 
         function loadData() {
-            document.getElementById('dataStatus').textContent = 'Loading data...';
+            // document.getElementById('dataStatus').textContent = 'Loading data...';
             
             fetch('https://services.swpc.noaa.gov/json/ovation_aurora_latest.json')
                 .then(response => {
@@ -230,81 +243,24 @@
                     
                     // Update forecast time
                     const forecastTime = new Date(data["Forecast Time"]);
-                    document.getElementById('forecastTime').textContent = forecastTime.toLocaleString();
+                    const formattedTime = forecastTime.toLocaleString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'America/New_York',
+                        timeZoneName: 'short'
+                    });
+                    document.getElementById('forecastTime').textContent = `Data as of ${formattedTime}`;
                 })
                 .catch(error => {
                     console.error('Error loading data:', error);
-                    document.getElementById('dataStatus').textContent = 'Error loading data';
+                    // document.getElementById('dataStatus').textContent = 'Error loading data';
                     document.getElementById('forecastTime').textContent = 'Data unavailable';
                     
-                    // Load sample data as fallback
-                    loadSampleData();
                 });
-        }
-
-        function loadSampleData() {
-            console.log('Loading sample data...');
-            document.getElementById('dataStatus').textContent = 'Using sample data';
-            
-            // Sample arctic aurora data for demonstration
-            const sampleGeoJSON = {
-                "type": "FeatureCollection",
-                "features": [
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [-147.0, 65.0]},
-                        "properties": {"aurora": 8}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [-133.0, 69.3]},
-                        "properties": {"aurora": 12}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [-26.0, 67.5]},
-                        "properties": {"aurora": 6}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [18.9, 69.6]},
-                        "properties": {"aurora": 10}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [27.0, 68.0]},
-                        "properties": {"aurora": 7}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [-50.0, 67.0]},
-                        "properties": {"aurora": 5}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [25.0, 78.0]},
-                        "properties": {"aurora": 15}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [-100.0, 72.0]},
-                        "properties": {"aurora": 9}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [120.0, 75.0]},
-                        "properties": {"aurora": 11}
-                    },
-                    {
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [-60.0, 80.0]},
-                        "properties": {"aurora": 13}
-                    }
-                ]
-            };
-            
-            loadGeoJSON(sampleGeoJSON);
-            document.getElementById('forecastTime').textContent = 'Sample Data - ' + new Date().toLocaleString();
         }
 
         // Add map click handler for debugging
