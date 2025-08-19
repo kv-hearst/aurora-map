@@ -1,0 +1,45 @@
+{
+  "name": "polarmap",
+  "version": "1.2.1",
+  "description": "Leaflet library for polar map projection switching",
+  "main": "dist/polarmap-src.js",
+  "directories": {
+    "example": "examples"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GeoSensorWebLab/polarmap.js"
+  },
+  "keywords": [
+    "arctic",
+    "leaflet",
+    "maps",
+    "polar"
+  ],
+  "homepage": "http://webmap.arcticconnect.ca/polarmap.html",
+  "bugs": {
+    "url": "https://github.com/GeoSensorWebLab/polarmap.js/issues"
+  },
+  "contributors": [
+    {
+      "name": "James Badger",
+      "email": "jpbadger@ucalgary.ca"
+    }
+  ],
+  "license": "BSD-2-Clause",
+  "devDependencies": {
+    "bower": "^1.4.1",
+    "expect.js": "^0.3.1",
+    "http-server": "^0.7.1",
+    "jake": "^8.0.9",
+    "karma": "^0.12.24",
+    "karma-mocha": "^0.1.9",
+    "karma-phantomjs-launcher": "^0.1.4",
+    "leaflet": "~0.7.3",
+    "mocha": "^2.0.1",
+    "proj4": "^2.0.0",
+    "proj4leaflet": "~0.7.1",
+    "sinon": "^1.10.3",
+    "uglify-js": "^2.4.15"
+  }
+}

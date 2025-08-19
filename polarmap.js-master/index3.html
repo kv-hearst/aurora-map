@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurora Forecast Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 2px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 12px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    
+    <div class="info-panel">
+        <div><strong>Aurora Forecast</strong></div>
+        <div id="forecastTime">Loading...</div>
+        <div id="dataStatus">Initializing...</div>
+    </div>
+    
+    <div class="legend">
+        <div><strong>Likelihood of Aurora</strong></div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF0000;"></div>
+            <span>Extreme</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF8000;"></div>
+            <span>Very High</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FFFF00;"></div>
+            <span>High</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #80FF00;"></div>
+            <span>Moderate</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00FF00;"></div>
+            <span>Low</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/GeoSensorWebLab/polarmap.js@v0.3.0/dist/polarmap.js"></script>
+
+    <script>
+        // Create PolarMap with Arctic projection
+        const map = new PolarMap({
+            mapID: 'map',
+            hemisphere: 'north',
+            projection: 'EPSG:3413', // NSIDC Sea Ice Polar Stereographic North
+            minZoom: 0,
+            maxZoom: 8,
+            zoom: 3,
+            center: [90, 0] // North Pole center
+        });
+
+        // Add base layer using PolarMap's built-in support
+        map.addLayer({
+            type: 'tile',
+            url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            attribution: '© OpenStreetMap contributors',
+            id: 'osm-base'
+        });
+
+        let auroraLayer = map.createLayerGroup();
+        let heatmapLayer = null;
+
+        function getAuroraColor(intensity) {
+            if (intensity >= 16) return '#FF0000';      // Extreme - Red
+            if (intensity >= 13) return '#FF8000';      // Very High - Orange
+            if (intensity >= 9) return '#FFFF00';       // High - Yellow
+            if (intensity >= 6) return '#00FF80';       // Moderate - Green
+            if (intensity >= 3) return '#0080FF';       // Low - Light Blue
+            if (intensity >= 1) return '#000080';       // Weak - Dark Blue
+            return '#000040';                           // None - Very Dark Blue
+        }
+
+        function getAuroraRadius(intensity) {
+            return Math.max(3, intensity * 2); // Minimum 3px, scale with intensity
+        }
+
+        function getAuroraOpacity(intensity) {
+            return intensity > 0 ? Math.max(0.3, intensity / 20) : 0.1;
+        }
+
+        function loadGeoJSON(geoJsonData) {
+            // Clear existing layers
+            if (auroraLayer) {
+                map.removeLayer(auroraLayer);
+            }
+            if (heatmapLayer) {
+                map.removeLayer(heatmapLayer);
+            }
+            
+            let pointCount = 0;
+            let heatmapPoints = [];
+            
+            if (geoJsonData.features) {
+                geoJsonData.features.forEach(feature => {
+                    const coords = feature.geometry.coordinates;
+                    const intensity = feature.properties.aurora || 0;
+                    const lat = coords[1];
+                    
+                    // Only show points in Arctic region (latitude > 60°N) with aurora activity
+                    if (intensity > 0 && lat > 60) {
+                        // Use raw intensity for better color distribution
+                        let heatIntensity;
+                        if (intensity >= 15) heatIntensity = 1.0;
+                        else if (intensity >= 10) heatIntensity = 0.8;
+                        else if (intensity >= 6) heatIntensity = 0.6;
+                        else if (intensity >= 3) heatIntensity = 0.4;
+                        else heatIntensity = 0.2;
+                        
+                        heatmapPoints.push([lat, coords[0], heatIntensity]);
+                        pointCount++;
+                    }
+                });
+                
+                // Create the heatmap layer using PolarMap
+                if (heatmapPoints.length > 0) {
+                    heatmapLayer = map.addHeatLayer({
+                        data: heatmapPoints,
+                        options: {
+                            radius: 60,
+                            blur: 30,
+                            maxZoom: 8,
+                            max: 1.0,
+                            minOpacity: 0.1,
+                            gradient: {
+                                0.0: 'rgba(0, 0, 0, 0)',
+                                0.2: 'rgba(0, 255, 0, 0.4)',
+                                0.4: 'rgba(128, 255, 0, 0.6)',
+                                0.6: 'rgba(255, 255, 0, 0.7)',
+                                0.8: 'rgba(255, 128, 0, 0.8)',
+                                1.0: 'rgba(255, 0, 0, 0.9)'
+                            }
+                        },
+                        id: 'aurora-heat'
+                    });
+                }
+                
+                // Create invisible markers for popups
+                auroraLayer = map.createLayerGroup();
+                geoJsonData.features.forEach(feature => {
+                    const coords = feature.geometry.coordinates;
+                    const intensity = feature.properties.aurora || 0;
+                    const lat = coords[1];
+                    
+                    if (intensity > 0 && lat > 60) {
+                        const marker = map.addCircleMarker({
+                            center: [lat, coords[0]],
+                            radius: Math.max(8, intensity * 1.5),
+                            style: {
+                                fillColor: 'transparent',
+                                color: 'transparent',
+                                weight: 0,
+                                opacity: 0,
+                                fillOpacity: 0
+                            },
+                            popup: `
+                                <strong>Aurora Intensity: ${intensity}</strong><br>
+                                Lat: ${lat.toFixed(1)}°<br>
+                                Lng: ${coords[0].toFixed(1)}°
+                            `,
+                            layerGroup: auroraLayer
+                        });
+                    }
+                });
+            }
+            
+            document.getElementById('dataStatus').textContent = `Showing ${pointCount} Arctic aurora points`;
+        }
+
+        function loadData() {
+            document.getElementById('dataStatus').textContent = 'Loading data...';
+            
+            fetch('https://services.swpc.noaa.gov/json/ovation_aurora_latest.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Raw API data:', data);
+                    
+                    // Convert to GeoJSON format
+                    const geoJSON = {
+                        "type": "FeatureCollection",
+                        "features": data.coordinates.map(coord => ({
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [coord[0], coord[1]]
+                            },
+                            "properties": {
+                                "aurora": coord[2],
+                                "forecast_time": data["Forecast Time"]
+                            }
+                        }))
+                    };
+                    
+                    loadGeoJSON(geoJSON);
+                    
+                    // Update forecast time
+                    const forecastTime = new Date(data["Forecast Time"]);
+                    document.getElementById('forecastTime').textContent = forecastTime.toLocaleString();
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    document.getElementById('dataStatus').textContent = 'Error loading data';
+                    document.getElementById('forecastTime').textContent = 'Data unavailable';
+                    
+                    // Load sample data as fallback
+                    loadSampleData();
+                });
+        }
+
+        function loadSampleData() {
+            console.log('Loading sample data...');
+            document.getElementById('dataStatus').textContent = 'Using sample data';
+            
+            // Sample arctic aurora data for demonstration
+            const sampleGeoJSON = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [-147.0, 65.0]},
+                        "properties": {"aurora": 8}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [-133.0, 69.3]},
+                        "properties": {"aurora": 12}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [-26.0, 67.5]},
+                        "properties": {"aurora": 6}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [18.9, 69.6]},
+                        "properties": {"aurora": 10}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [27.0, 68.0]},
+                        "properties": {"aurora": 7}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [-50.0, 67.0]},
+                        "properties": {"aurora": 5}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [25.0, 78.0]},
+                        "properties": {"aurora": 15}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [-100.0, 72.0]},
+                        "properties": {"aurora": 9}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [120.0, 75.0]},
+                        "properties": {"aurora": 11}
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [-60.0, 80.0]},
+                        "properties": {"aurora": 13}
+                    }
+                ]
+            };
+            
+            loadGeoJSON(sampleGeoJSON);
+            document.getElementById('forecastTime').textContent = 'Sample Data - ' + new Date().toLocaleString();
+        }
+
+        // Add map click handler for debugging
+        map.on('click', function(e) {
+            console.log('Clicked at: ' + e.latlng);
+        });
+
+        // Load data when page loads
+        setTimeout(loadData, 1000);
+        
+        // Auto-refresh every 15 minutes
+        setInterval(loadData, 15 * 60 * 1000);
+    </script>
+
+</body>
+</html>

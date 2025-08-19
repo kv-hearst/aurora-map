@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurora Forecast Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: white;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .file-input {
+            margin-bottom: 10px;
+        }
+        
+        .file-input input {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+        }
+        
+        .info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="controls">
+        <h3>🌌 Aurora Map Viewer</h3>
+        <div class="file-input">
+            <label>Load GeoJSON File:</label><br>
+            <input type="file" id="fileInput" accept=".geojson,.json" />
+        </div>
+        <button onclick="loadSampleData()" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Load Sample Data</button>
+    </div>
+    
+    <div class="info">
+        <h4>Aurora Intensity Scale</h4>
+        <p>Higher values indicate stronger aurora activity. Best viewing locations are in dark areas away from cities.</p>
+        <p><strong>Forecast Time:</strong> <span id="forecastTime">Loading...</span></p>
+    </div>
+    
+    <div class="legend">
+        <h4>Aurora Intensity</h4>
+        <div class="legend-item">
+            <div class="color-box" style="background: #000080;"></div>
+            <span>0-2: None/Weak</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #0080FF;"></div>
+            <span>3-5: Low</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #00FF80;"></div>
+            <span>6-8: Moderate</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #FFFF00;"></div>
+            <span>9-12: High</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #FF8000;"></div>
+            <span>13-15: Very High</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box" style="background: #FF0000;"></div>
+            <span>16+ : Extreme</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        // Initialize map centered on Arctic
+        const map = L.map('map', {
+            center: [70, 0],
+            zoom: 3,
+            minZoom: 2,
+            maxZoom: 8
+        });
+
+        // Dark theme tile layer
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+            attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap',
+            maxZoom: 20
+        }).addTo(map);
+
+        let auroraLayer = L.layerGroup().addTo(map);
+
+        function getAuroraColor(intensity) {
+            if (intensity >= 16) return '#FF0000';      // Extreme - Red
+            if (intensity >= 13) return '#FF8000';      // Very High - Orange
+            if (intensity >= 9) return '#FFFF00';       // High - Yellow
+            if (intensity >= 6) return '#00FF80';       // Moderate - Green
+            if (intensity >= 3) return '#0080FF';       // Low - Light Blue
+            if (intensity >= 1) return '#000080';       // Weak - Dark Blue
+            return '#000040';                           // None - Very Dark Blue
+        }
+
+        function getAuroraRadius(intensity) {
+            return Math.max(3, intensity * 2); // Minimum 3px, scale with intensity
+        }
+
+        function getAuroraOpacity(intensity) {
+            return intensity > 0 ? Math.max(0.3, intensity / 20) : 0.1;
+        }
+
+        function loadGeoJSON(geoJsonData) {
+            auroraLayer.clearLayers();
+            
+            if (geoJsonData.features) {
+                geoJsonData.features.forEach(feature => {
+                    const coords = feature.geometry.coordinates;
+                    const intensity = feature.properties.aurora || 0;
+                    
+                    if (intensity > 0) { // Only show points with aurora activity
+                        const circle = L.circleMarker([coords[1], coords[0]], {
+                            radius: getAuroraRadius(intensity),
+                            fillColor: getAuroraColor(intensity),
+                            color: getAuroraColor(intensity),
+                            weight: 1,
+                            opacity: getAuroraOpacity(intensity),
+                            fillOpacity: getAuroraOpacity(intensity)
+                        });
+                        
+                        circle.bindPopup(`
+                            <strong>Aurora Intensity: ${intensity}</strong><br>
+                            Lat: ${coords[1].toFixed(1)}°<br>
+                            Lng: ${coords[0].toFixed(1)}°
+                        `);
+                        
+                        auroraLayer.addLayer(circle);
+                    }
+                });
+            }
+            
+            // Update forecast time if available
+            const forecastTime = geoJsonData.features?.[0]?.properties?.forecast_time;
+            if (forecastTime) {
+                document.getElementById('forecastTime').textContent = new Date(forecastTime).toLocaleString();
+            }
+        }
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const geoJsonData = JSON.parse(e.target.result);
+                        loadGeoJSON(geoJsonData);
+                    } catch (error) {
+                        alert('Error parsing GeoJSON file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Sample data for demonstration
+        function loadSampleData() {
+            fetch('https://services.swpc.noaa.gov/json/ovation_aurora_latest.json')
+                .then(response => response.json())
+                .then(data => {
+                    // Convert to GeoJSON format
+                    const geoJSON = {
+                        "type": "FeatureCollection",
+                        "features": data.coordinates.map(coord => ({
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [coord[0], coord[1]]
+                            },
+                            "properties": {
+                                "aurora": coord[2],
+                                "forecast_time": data["Forecast Time"]
+                            }
+                        }))
+                    };
+                    
+                    loadGeoJSON(geoJSON);
+                    document.getElementById('forecastTime').textContent = new Date(data["Forecast Time"]).toLocaleString();
+                })
+                .catch(error => {
+                    console.error('Error loading sample data:', error);
+                    alert('Could not load sample data. Please upload your own GeoJSON file.');
+                });
+        }
+
+        // Add some helpful map controls
+        map.on('click', function(e) {
+            console.log('Clicked at: ' + e.latlng.toString());
+        });
+
+        // Auto-load sample data when page loads
+        setTimeout(loadSampleData, 1000);
+    </script>
+</body>
+</html>
