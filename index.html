@@ -114,16 +114,8 @@
         }
         
         .legend {
-            /* position: relative;
-            bottom: 30px;
-            right: 10px; */
-            /* background: whitesmoke; */
             color: #333;
-            /* opacity: 0.7; */
-            /* padding: 10px;
-            border-radius: 5px; */
             z-index: 1000;
-            font-size: 12px;
             max-width: 300px;
             position: absolute;
             top: 700px;
@@ -134,7 +126,7 @@
         .legend-item {
             display: flex;
             align-items: center;
-            margin: 2px 0;
+            /* margin: 2px 0; */
         }
         
         .legend-color {
@@ -145,7 +137,6 @@
         }
 
         .footnote {
-            margin-top: 20px;
             position: relative;
             /* bottom: 10px;
             left: 10px; */
@@ -158,6 +149,28 @@
             flex-direction: row;
             justify-content: space-between;
         }
+    
+        @media (max-width: 600px) {
+            .legend {
+                font-size: 0.875rem;
+                top: 650px;
+            }
+
+            .legend-color {
+                width: 15px;
+                height: 10px;
+            }
+
+            .footnote {
+                position: relative;
+                top: auto;
+                left: auto;
+                width: 100%;
+                max-width: none;
+            }
+        }
+
+    
     </style>
 </head>
 
@@ -178,7 +191,7 @@
             <span>High</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background: #80FF00;"></div>
+            <div class="legend-color" style="background: #cdff00;"></div>
             <span>Moderate</span>
         </div>
         <div class="legend-item">
@@ -187,32 +200,7 @@
         </div>
     </div>
     <div id="map"></div>
-    
-    <!-- <div class="info-container">    
-        <div class="legend">
-            <div><strong>Likelihood of Aurora</strong></div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FF0000;"></div>
-                <span>Extreme</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FF8000;"></div>
-                <span>Very High</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FFFF00;"></div>
-                <span>High</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #80FF00;"></div>
-                <span>Moderate</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #00FF00;"></div>
-                <span>Low</span>
-            </div>
-        </div>
-    </div> -->
+   
 
     <div class="footnote">
         <div class="info-panel">
@@ -306,7 +294,7 @@
                         gradient: {
                             0.0: 'rgba(0, 0, 0, 0)', // Completely transparent
                             0.2: 'rgba(0, 255, 0, 0.4)', // Bright green (low likelihood)
-                            0.4: 'rgba(128, 255, 0, 0.6)', // Yellow-green 
+                            0.4: 'rgba(166, 255, 0, 0.6)', // Yellow-green 
                             0.6: 'rgba(255, 255, 0, 0.7)', // Yellow (moderate likelihood)
                             0.8: 'rgba(255, 128, 0, 0.8)', // Orange (high likelihood)
                             1.0: 'rgba(255, 0, 0, 0.9)' // Red (extreme likelihood)
